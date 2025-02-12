@@ -1,0 +1,29 @@
+#dockercompose se encarga de gestions los docekr que tengamos
+#Aunque tengamos solo uno es por buena practica en vez de usar el docker a mano
+
+version: "3.5"
+#definimos los servicios (1 en este caso y los nombres)
+services:
+  go-micro-course:
+    platform: linux/amd64
+    container_name: go-micro-course
+    build: #build especificaremos donde esta el dockerfile
+      context: ./.dockers/mysql #ruta del dockerfile
+      dockerfile: Dockerfile  #nombre archivo del dockefile
+    #image: test-name #podemos ponerle un nombre especifico a la imagen creada, si no lo crea como <project_name>-<service_name>
+    environment: #son variables de entorno que debemos definir (aparece en el dockerhub de hecho)
+      MYSQL_ROOT_PASSWORD: root #pass para usaurio "root" para bbdd
+      MYSQL_DATABASE: go_micro_course #bbdd que se creara al levantar la imagen (la misma que definimos en init.sql)
+    ports: #aqui definimos los puertos a usar
+      - "3322:3306" #redireccionaremos un puerto a otro. Osea que cuando le pegemos al 3321 del HOST redirigira al 3306 del conntenedor 
+    volumes: #[ruta en el host]:[ruta dentro del contenedor]
+      - ./.dockers/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql #Aqui copiamos mi archivo init.sql CREADO del proyect y lo copio al container docker-entrypoint-initdb.d
+      #MySQL ejecutará automáticamente cualquier archivo .sql que encuentre en docker-entrypoint-initdb.d/ (documentacin de dockerhub)
+
+#Para levantarlo pondremos en cmd: docker compose build
+#Luego podemos verlo con docker images
+#Luego ejecutaremos el container con la imagen, como usamos docker-compose es un COMANDO SENCILLO
+#Solo se pone docker compose up
+#Para ejecutar en segundo plano docker compose up -d
+#Luego con docker ps podemos ver que esta ok
+#Con docker inspect <idContainer> podemos ver los detalles (como pueto, etc)

@@ -1,0 +1,4 @@
+//Folder CMD
+//Si trabajamos con serverles y lambdas y dentro del mismo proyecto hay muchos mains y cada main seria una funcion, se ordena dentro de CMD
+
+//CMD con el main del proyecto o LOS MAINS del proyecto
