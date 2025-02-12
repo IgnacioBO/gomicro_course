@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/IgnacioBO/go_lib_response/response"
 	"github.com/IgnacioBO/gomicro_course/internal/course"
@@ -32,21 +33,20 @@ func NewUserHTTPServer(ctx context.Context, endpoints course.Endpoints) http.Han
 		opciones...,
 	)).Methods("POST")
 
+	router.Handle("/courses/{id}", httptransport.NewServer(
+		endpoint.Endpoint(endpoints.Get),
+		decodeGetCourse,
+		encodeResponse,
+		opciones...,
+	)).Methods("GET")
+
+	router.Handle("/courses", httptransport.NewServer(
+		endpoint.Endpoint(endpoints.GetAll),
+		decodeGetAllCourse,
+		encodeResponse,
+		opciones...,
+	)).Methods("GET")
 	/*
-		router.Handle("/users/{id}", httptransport.NewServer(
-			endpoint.Endpoint(endpoints.Get),
-			decodeGetUser,
-			encodeResponse,
-			opciones...,
-		)).Methods("GET")
-
-		router.Handle("/users", httptransport.NewServer(
-			endpoint.Endpoint(endpoints.GetAll),
-			decodeGetAllUser,
-			encodeResponse,
-			opciones...,
-		)).Methods("GET")
-
 		router.Handle("/users/{id}", httptransport.NewServer(
 			endpoint.Endpoint(endpoints.Delete),
 			decodeDeleteUser,
@@ -97,11 +97,9 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 }
 
-/*
 // *** MIDDLEWARE REQUEST GET ***
-// Funcion de decode, de GET
-func decodeGetUser(_ context.Context, r *http.Request) (interface{}, error) {
-	var getReq user.GetRequest
+func decodeGetCourse(_ context.Context, r *http.Request) (interface{}, error) {
+	var getReq course.GetRequest
 	variablesPath := mux.Vars(r)
 	getReq.ID = variablesPath["id"] //OBtenemos el id y lo guardamos en el cmapo ID de getReq
 
@@ -113,7 +111,7 @@ func decodeGetUser(_ context.Context, r *http.Request) (interface{}, error) {
 
 // *** MIDDLEWARE REQUEST GET All ***
 // Funcion de decode, de GET
-func decodeGetAllUser(_ context.Context, r *http.Request) (interface{}, error) {
+func decodeGetAllCourse(_ context.Context, r *http.Request) (interface{}, error) {
 	//Query() devielve un objeto que permite acceder a los parametros d la url (...?campo=123&campo2=hola)
 	variablesURL := r.URL.Query()
 
@@ -121,16 +119,16 @@ func decodeGetAllUser(_ context.Context, r *http.Request) (interface{}, error) {
 	limit, _ := strconv.Atoi(variablesURL.Get("limit"))
 	page, _ := strconv.Atoi(variablesURL.Get("page"))
 
-	getReqAll := user.GetAllRequest{
-		FirstName: variablesURL.Get("first_name"),
-		LastName:  variablesURL.Get("last_name"),
-		Limit:     limit,
-		Page:      page,
+	getReqAll := course.GetAllRequest{
+		Name:  variablesURL.Get("name"),
+		Limit: limit,
+		Page:  page,
 	}
 
 	return getReqAll, nil
 }
 
+/*
 // *** MIDDLEWARE REQUEST Delete ***
 func decodeDeleteUser(_ context.Context, r *http.Request) (interface{}, error) {
 	variablesPath := mux.Vars(r)

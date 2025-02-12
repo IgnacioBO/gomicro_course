@@ -3,6 +3,7 @@ package course
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/IgnacioBO/go_lib_response/response"
@@ -34,6 +35,17 @@ type (
 		EndDate   *string `json:"end_date"`
 	}
 
+	GetRequest struct {
+		ID string `json:"id"`
+	}
+
+	//Este struct tendra los PARAMETROS de la URL para pasarselo
+	GetAllRequest struct {
+		Name  string
+		Limit int
+		Page  int
+	}
+
 	MsgResponse struct {
 		ID  string `json:"id"`
 		Msg string `json:"msg"`
@@ -58,10 +70,10 @@ type (
 func MakeEndpoints(s Service, c Config) Endpoints {
 	return Endpoints{
 		Create: makeCreateEndpoint(s),
-		/*Get:    makeGetEndpoint(s),
-		Update: makeUpdateEndpoint(s),
-		Delete: makeDeleteEndpoint(s),
-		GetAll: makeGetAllEndpoint(s),*/
+		Get:    makeGetEndpoint(s),
+		/*Update: makeUpdateEndpoint(s),
+		Delete: makeDeleteEndpoint(s),*/
+		GetAll: makeGetAllEndpoint(s, c),
 	}
 }
 
@@ -97,117 +109,105 @@ func makeCreateEndpoint(s Service) Controller {
 }
 
 /*
-func makeUpdateEndpoint(s Service) Controller {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		fmt.Println("update course")
-		w.Header().Add("Content-Type", "application/json; charset=utf-8") //Linea miea para que se determine que respondera un json
+	func makeUpdateEndpoint(s Service) Controller {
+		return func(ctx context.Context, request interface{}) (interface{}, error) {
+			fmt.Println("update course")
+			w.Header().Add("Content-Type", "application/json; charset=utf-8") //Linea miea para que se determine que respondera un json
 
-		//Variable con struct de request (datos de atualizacion)
-		var reqStruct UpdateRequest
-		//r.Body tiene el body del request (se espera JSON) y lo decodifica al struct (reqStruct) (osea pasar el json enviado en el request a un struct)
-		err := json.NewDecoder(r.Body).Decode(&reqStruct)
-		if err != nil {
-			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "invalid request format." + err.Error()})
-			return
+			//Variable con struct de request (datos de atualizacion)
+			var reqStruct UpdateRequest
+			//r.Body tiene el body del request (se espera JSON) y lo decodifica al struct (reqStruct) (osea pasar el json enviado en el request a un struct)
+			err := json.NewDecoder(r.Body).Decode(&reqStruct)
+			if err != nil {
+				w.WriteHeader(400)
+				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "invalid request format." + err.Error()})
+				return
+			}
+
+			if reqStruct.Name != nil && *reqStruct.Name == "" {
+				w.WriteHeader(400)
+				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "name can't be empty"})
+				return
+			}
+			if reqStruct.StartDate != nil && *reqStruct.StartDate == "" {
+				w.WriteHeader(400)
+				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "start_date can't be empty"})
+				return
+			}
+
+			if reqStruct.EndDate != nil && *reqStruct.EndDate == "" {
+				w.WriteHeader(400)
+				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "end_date can't be empty"})
+				return
+			}
+
+			variablesPath := mux.Vars(r)
+			id := variablesPath["id"]
+
+			err = s.Update(id, reqStruct.Name, reqStruct.StartDate, reqStruct.EndDate)
+			if err != nil {
+				w.WriteHeader(404)
+				json.NewEncoder(w).Encode(Response{Status: 404, Err: err.Error()}) //Aqui devolvemo el posible erro
+				return
+			}
+			json.NewEncoder(w).Encode(&Response{Status: 200, Data: map[string]string{"id": id, "msg": "success"}})
+
 		}
-
-		if reqStruct.Name != nil && *reqStruct.Name == "" {
-			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "name can't be empty"})
-			return
-		}
-		if reqStruct.StartDate != nil && *reqStruct.StartDate == "" {
-			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "start_date can't be empty"})
-			return
-		}
-
-		if reqStruct.EndDate != nil && *reqStruct.EndDate == "" {
-			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "end_date can't be empty"})
-			return
-		}
-
-		variablesPath := mux.Vars(r)
-		id := variablesPath["id"]
-
-		err = s.Update(id, reqStruct.Name, reqStruct.StartDate, reqStruct.EndDate)
-		if err != nil {
-			w.WriteHeader(404)
-			json.NewEncoder(w).Encode(Response{Status: 404, Err: err.Error()}) //Aqui devolvemo el posible erro
-			return
-		}
-		json.NewEncoder(w).Encode(&Response{Status: 200, Data: map[string]string{"id": id, "msg": "success"}})
-
 	}
-}
+*/
 func makeGetEndpoint(s Service) Controller {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		fmt.Println("get course")
-		w.Header().Add("Content-Type", "application/json; charset=utf-8") //Linea miea para que se determine que respondera un json
 
-		//Aqui usamos MUX para extrar las variables del path (url)
-		//Y con ["id"] obtenemos el valor del parametro {id} definido en el main.go (courses/{id})
-		//**¿ESTA BIEN ESTO?? USAMOS LIBRERIA EXTERNA EN "internal/courses", no se deberia -> en notasAparte.txt tengo una solucion
-		variablesPath := mux.Vars(r)
-		id := variablesPath["id"]
-		fmt.Println("id es:", id)
-		usuario, err := s.Get(id)
+		getReq := request.(GetRequest)
+
+		course, err := s.Get(ctx, getReq.ID)
 		if err != nil {
-			if usuario == nil { //Si usuario es vacio da 404
-				w.WriteHeader(404)
-				json.NewEncoder(w).Encode(&Response{Status: 404, Err: err.Error() + ". course with id " + id + " doesn't exist"}) //Aqui devolvemo el posible erro
-				return
+			if errors.As(err, &ErrCourseNotFound{}) {
+				return nil, response.NotFound(err.Error())
 			} else {
-				w.WriteHeader(400)
-				json.NewEncoder(w).Encode(&Response{Status: 400, Err: err.Error()}) //Aqui devolvemo el posible erro
-				return
+				return nil, response.InternalServerError(err.Error())
+
 			}
 		}
 
-		json.NewEncoder(w).Encode(&Response{Status: 200, Data: usuario})
+		return response.OK("success", course, nil), nil
 
 	}
 }
-func makeGetAllEndpoint(s Service) Controller {
+
+func makeGetAllEndpoint(s Service, c Config) Controller {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		fmt.Println("getall course")
-		w.Header().Add("Content-Type", "application/json; charset=utf-8") //Linea miea para que se determine que respondera un json
 
-		//URL.Query() que viene del request
-		//Query() devielve un objeto que permite acceder a los parametros d la url (...?campo=123&campo2=hola)
-		variablesURL := r.URL.Query()
+		getAllReq := request.(GetAllRequest)
+
 		//Luego con podemos acceder a los parametos y guardarlos en el struct Filtro (creado en service.go)
 		filtros := Filtros{
-			Name: variablesURL.Get("name"),
+			Name: getAllReq.Name,
 		}
 		//Ahora obtendremos el limit y la pagina desde los parametros
-		limit, _ := strconv.Atoi(variablesURL.Get("limit"))
-		page, _ := strconv.Atoi(variablesURL.Get("page"))
+		limit := getAllReq.Limit
+		page := getAllReq.Page
 
 		//Ahora llamaremos al Count del service que creamos (antes de hacer la consulta completa)
-		cantidad, err := s.Count(filtros)
+		cantidad, err := s.Count(ctx, filtros)
 		if err != nil {
-			w.WriteHeader(500)
-			json.NewEncoder(w).Encode(&Response{Status: 500, Err: err.Error()}) //Aqui devolvemo el posible erro
-			return
+			return nil, response.InternalServerError(err.Error())
 		}
 		//Luego crearemos un meta y le agregaremos la cantidad que consultamos, luego el meta lo ageregaremos a la respuesta
-		meta, err := meta.New(page, limit, cantidad)
+		meta, err := meta.New(page, limit, cantidad, c.LimitPageDefault)
 
-		allCourses, err := s.GetAll(filtros, meta.Offset(), meta.Limit()) //GetAll recibe el offset (desde q resultado mostrar) y el limit (cuantos desde el offset)
+		allCourses, err := s.GetAll(ctx, filtros, meta.Offset(), meta.Limit()) //GetAll recibe el offset (desde q resultado mostrar) y el limit (cuantos desde el offset)
 		if err != nil {
-			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: err.Error()}) //Aqui devolvemo el posible erro
-			return
+			return nil, response.InternalServerError(err.Error())
 		}
 
-		json.NewEncoder(w).Encode(&Response{Status: 200, Data: allCourses, Meta: meta})
+		return response.OK("success", allCourses, meta), nil
 	}
 }
 
-
+/*
 // Este devolver un Controller, retora una función de tipo Controller (que definimos arriba) con esta caractesitica
 // Es privado porque se llamar solo de este dominio
 func makeDeleteEndpoint(s Service) Controller {
