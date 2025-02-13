@@ -55,12 +55,13 @@ func (s service) Create(ctx context.Context, name, startDate, endDate string) (*
 	startDateParsed, err := time.Parse("2006-01-02", startDate) //Parse
 	if err != nil {
 		s.log.Println(err)
-		return nil, err
+		return nil, ErrDateBadFormat{"start_date", err.Error()}
 	}
 	endDateParsed, err := time.Parse("2006-01-02", endDate)
 	if err != nil {
 		s.log.Println(err)
-		return nil, err
+		return nil, ErrDateBadFormat{"end_date", err.Error()}
+
 	}
 
 	cursoNuevo := domain.Course{
@@ -115,15 +116,16 @@ func (s service) Update(ctx context.Context, id string, name *string, startDate,
 		parsedTime, err := time.Parse("2006-01-02", *startDate)
 		if err != nil {
 			s.log.Println(err)
-			return err
+			return ErrDateBadFormat{"start_date", err.Error()}
 		}
 		startDateParsed = &parsedTime
 	}
+
 	if endDate != nil {
 		parsedTime, err := time.Parse("2006-01-02", *endDate)
 		if err != nil {
 			s.log.Println(err)
-			return err
+			return ErrDateBadFormat{"end_date", err.Error()}
 		}
 		endDateParsed = &parsedTime
 	}

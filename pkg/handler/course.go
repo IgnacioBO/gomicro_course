@@ -53,14 +53,14 @@ func NewUserHTTPServer(ctx context.Context, endpoints course.Endpoints) http.Han
 			encodeResponse,
 			opciones...,
 		)).Methods("DELETE")
-
-		router.Handle("/users/{id}", httptransport.NewServer(
-			endpoint.Endpoint(endpoints.Update),
-			decodeUpdateUser,
-			encodeResponse,
-			opciones...,
-		)).Methods("PATCH")
 	*/
+	router.Handle("/courses/{id}", httptransport.NewServer(
+		endpoint.Endpoint(endpoints.Update),
+		decodeUpdateCourse,
+		encodeResponse,
+		opciones...,
+	)).Methods("PATCH")
+
 	return router
 }
 
@@ -139,10 +139,10 @@ func decodeDeleteUser(_ context.Context, r *http.Request) (interface{}, error) {
 	return deleteReq, nil
 
 }
-
+*/
 // *** MIDDLEWARE REQUEST Delete***
-func decodeUpdateUser(_ context.Context, r *http.Request) (interface{}, error) {
-	var reqStruct user.UpdateRequest
+func decodeUpdateCourse(_ context.Context, r *http.Request) (interface{}, error) {
+	var reqStruct course.UpdateRequest
 
 	err := json.NewDecoder(r.Body).Decode(&reqStruct)
 	if err != nil {
@@ -154,4 +154,4 @@ func decodeUpdateUser(_ context.Context, r *http.Request) (interface{}, error) {
 
 	return reqStruct, nil
 
-}*/
+}

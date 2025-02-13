@@ -30,6 +30,7 @@ type (
 	//Definiremos una struct para definir el request del UPDATE, con los campos que quiero y SE PODRAN ACTUALIZAR y los tags de json
 	//Seran de tipo puntero * para que puedan venir vacios y poder separar entre vacios "" y que no vengan
 	UpdateRequest struct {
+		ID        string
 		Name      *string `json:"name"`
 		StartDate *string `json:"start_date"`
 		EndDate   *string `json:"end_date"`
@@ -71,8 +72,8 @@ func MakeEndpoints(s Service, c Config) Endpoints {
 	return Endpoints{
 		Create: makeCreateEndpoint(s),
 		Get:    makeGetEndpoint(s),
-		/*Update: makeUpdateEndpoint(s),
-		Delete: makeDeleteEndpoint(s),*/
+		Update: makeUpdateEndpoint(s),
+		/*Delete: makeDeleteEndpoint(s),*/
 		GetAll: makeGetAllEndpoint(s, c),
 	}
 }
@@ -108,53 +109,40 @@ func makeCreateEndpoint(s Service) Controller {
 	}
 }
 
-/*
-	func makeUpdateEndpoint(s Service) Controller {
-		return func(ctx context.Context, request interface{}) (interface{}, error) {
-			fmt.Println("update course")
-			w.Header().Add("Content-Type", "application/json; charset=utf-8") //Linea miea para que se determine que respondera un json
+func makeUpdateEndpoint(s Service) Controller {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		fmt.Println("update course")
 
-			//Variable con struct de request (datos de atualizacion)
-			var reqStruct UpdateRequest
-			//r.Body tiene el body del request (se espera JSON) y lo decodifica al struct (reqStruct) (osea pasar el json enviado en el request a un struct)
-			err := json.NewDecoder(r.Body).Decode(&reqStruct)
-			if err != nil {
-				w.WriteHeader(400)
-				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "invalid request format." + err.Error()})
-				return
-			}
+		//Variable con struct de request (datos de atualizacion)
+		reqStruct := request.(UpdateRequest)
+		//r.Body tiene el body del request (se espera JSON) y lo decodifica al struct (reqStruct) (osea pasar el json enviado en el request a un struct)
 
-			if reqStruct.Name != nil && *reqStruct.Name == "" {
-				w.WriteHeader(400)
-				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "name can't be empty"})
-				return
-			}
-			if reqStruct.StartDate != nil && *reqStruct.StartDate == "" {
-				w.WriteHeader(400)
-				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "start_date can't be empty"})
-				return
-			}
-
-			if reqStruct.EndDate != nil && *reqStruct.EndDate == "" {
-				w.WriteHeader(400)
-				json.NewEncoder(w).Encode(&Response{Status: 400, Err: "end_date can't be empty"})
-				return
-			}
-
-			variablesPath := mux.Vars(r)
-			id := variablesPath["id"]
-
-			err = s.Update(id, reqStruct.Name, reqStruct.StartDate, reqStruct.EndDate)
-			if err != nil {
-				w.WriteHeader(404)
-				json.NewEncoder(w).Encode(Response{Status: 404, Err: err.Error()}) //Aqui devolvemo el posible erro
-				return
-			}
-			json.NewEncoder(w).Encode(&Response{Status: 200, Data: map[string]string{"id": id, "msg": "success"}})
+		if reqStruct.Name != nil && *reqStruct.Name == "" {
+			return nil, response.BadRequest(ErrNameNotEmpty.Error())
+		}
+		if reqStruct.StartDate != nil && *reqStruct.StartDate == "" {
+			return nil, response.BadRequest(ErrStartDateNotEmpty.Error())
 
 		}
+		if reqStruct.EndDate != nil && *reqStruct.EndDate == "" {
+			return nil, response.BadRequest(ErrEndDateNotEmpty.Error())
+
+		}
+
+		err := s.Update(ctx, reqStruct.ID, reqStruct.Name, reqStruct.StartDate, reqStruct.EndDate)
+		if err != nil {
+			if errors.As(err, &ErrCourseNotFound{}) {
+				return nil, response.NotFound(err.Error())
+			}
+			if errors.As(err, &ErrDateBadFormat{}) {
+				return nil, response.BadRequest(err.Error())
+			}
+			return nil, response.InternalServerError(err.Error())
+		}
+		return response.OK("success", map[string]string{"id": reqStruct.ID}, nil), nil
 	}
-*/
+}
+
 func makeGetEndpoint(s Service) Controller {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		fmt.Println("get course")
