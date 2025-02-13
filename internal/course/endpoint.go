@@ -94,6 +94,9 @@ func makeCreateEndpoint(s Service) Controller {
 		//Usaremos la s recibida como parametro (de la capa Service y usaremos el metodo CREATE con lo que debe recibir)
 		courseNuevo, err := s.Create(ctx, reqStruct.Name, reqStruct.StartDate, reqStruct.EndDate)
 		if err != nil {
+			if err == ErrEndLesserStart {
+				return nil, response.BadRequest(err.Error())
+			}
 			return nil, response.InternalServerError(err.Error())
 		}
 
@@ -126,7 +129,7 @@ func makeUpdateEndpoint(s Service) Controller {
 			if errors.As(err, &ErrCourseNotFound{}) {
 				return nil, response.NotFound(err.Error())
 			}
-			if errors.As(err, &ErrDateBadFormat{}) {
+			if (errors.As(err, &ErrDateBadFormat{}) || err == ErrEndLesserStart) {
 				return nil, response.BadRequest(err.Error())
 			}
 			return nil, response.InternalServerError(err.Error())

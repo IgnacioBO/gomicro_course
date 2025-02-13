@@ -61,7 +61,11 @@ func (s service) Create(ctx context.Context, name, startDate, endDate string) (*
 	if err != nil {
 		s.log.Println(err)
 		return nil, ErrDateBadFormat{"end_date", err.Error()}
-
+	}
+	//Los time de go After y Before tiene comparacn de fechas
+	if startDateParsed.After(endDateParsed) { //Si el startDate es POSTERIOR a EndDate da error
+		s.log.Println(ErrEndLesserStart)
+		return nil, ErrEndLesserStart
 	}
 
 	cursoNuevo := domain.Course{
@@ -112,22 +116,33 @@ func (s service) Update(ctx context.Context, id string, name *string, startDate,
 	var endDateParsed *time.Time
 	var err error
 
+	//Haremos un GET para poder VALIDR y COMPARA CON LA BBDD (para que no ponga end date antes que start date)
+	course, err := s.repo.Get(ctx, id)
+
 	if startDate != nil { //Si startDate viene nil es porque no veiene en el request, x lo que NO entra en el if
-		parsedTime, err := time.Parse("2006-01-02", *startDate)
+		parsedDate, err := time.Parse("2006-01-02", *startDate)
 		if err != nil {
 			s.log.Println(err)
 			return ErrDateBadFormat{"start_date", err.Error()}
 		}
-		startDateParsed = &parsedTime
+		startDateParsed = &parsedDate
+		if parsedDate.After(course.EndDate) {
+			s.log.Println(ErrEndLesserStart)
+			return ErrEndLesserStart
+		}
 	}
 
 	if endDate != nil {
-		parsedTime, err := time.Parse("2006-01-02", *endDate)
+		parsedDate, err := time.Parse("2006-01-02", *endDate)
 		if err != nil {
 			s.log.Println(err)
 			return ErrDateBadFormat{"end_date", err.Error()}
 		}
-		endDateParsed = &parsedTime
+		endDateParsed = &parsedDate
+		if parsedDate.Before(course.StartDate) {
+			s.log.Println(ErrEndLesserStart)
+			return ErrEndLesserStart
+		}
 	}
 	err = s.repo.Update(ctx, id, name, startDateParsed, endDateParsed)
 

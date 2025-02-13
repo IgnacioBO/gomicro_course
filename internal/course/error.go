@@ -13,6 +13,8 @@ var ErrNameNotEmpty = errors.New("name can't be empty")
 var ErrStartDateNotEmpty = errors.New("start_date can't be empty")
 var ErrEndDateNotEmpty = errors.New("end_date can't be empty")
 
+var ErrEndLesserStart = errors.New("end_date mustn't be lesser than start date")
+
 type ErrCourseNotFound struct {
 	CourseID string
 }
