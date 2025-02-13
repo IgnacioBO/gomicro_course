@@ -37,7 +37,7 @@ func NewRepo(log *log.Logger, db *gorm.DB) Repository {
 func (r *repo) Create(ctx context.Context, course *domain.Course) error {
 	r.log.Println("repository Create:", course)
 
-	result := r.db.Create(course)
+	result := r.db.WithContext(ctx).Create(course)
 
 	if result.Error != nil {
 		r.log.Println(result.Error)
@@ -52,7 +52,7 @@ func (r *repo) GetAll(ctx context.Context, filtros Filtros, offset, limit int) (
 
 	var allCourses []domain.Course
 
-	tx := r.db.Model(&allCourses)
+	tx := r.db.WithContext(ctx).Model(&allCourses)
 	tx = aplicarFiltros(tx, filtros)
 	tx = tx.Limit(limit).Offset(offset)
 	result := tx.Order("created_at desc").Find(&allCourses)
@@ -69,7 +69,7 @@ func (r *repo) Get(ctx context.Context, id string) (*domain.Course, error) {
 
 	usuario := domain.Course{ID: id}
 
-	result := r.db.First(&usuario)
+	result := r.db.WithContext(ctx).First(&usuario)
 	if result.Error != nil {
 		r.log.Println(result.Error)
 		if result.Error == gorm.ErrRecordNotFound {
@@ -86,7 +86,7 @@ func (r *repo) Delete(ctx context.Context, id string) error {
 
 	usuario := domain.Course{ID: id}
 
-	result := r.db.Delete(&usuario)
+	result := r.db.WithContext(ctx).Delete(&usuario)
 	if result.Error != nil {
 		r.log.Println(result.Error)
 		return result.Error
@@ -116,7 +116,7 @@ func (r *repo) Update(ctx context.Context, id string, name *string, startDate, e
 		valores["end_date"] = *endDate
 	}
 
-	result := r.db.Model(domain.Course{}).Where("id = ?", id).Updates(valores)
+	result := r.db.WithContext(ctx).Model(domain.Course{}).Where("id = ?", id).Updates(valores)
 
 	if result.Error != nil {
 		return result.Error
@@ -144,7 +144,7 @@ func aplicarFiltros(tx *gorm.DB, filtros Filtros) *gorm.DB {
 
 func (r *repo) Count(ctx context.Context, filtros Filtros) (int, error) {
 	var cantidad int64
-	tx := r.db.Model(domain.Course{})
+	tx := r.db.WithContext(ctx).Model(domain.Course{})
 	tx = aplicarFiltros(tx, filtros)
 	tx = tx.Count(&cantidad)
 	if tx.Error != nil {
