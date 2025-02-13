@@ -47,9 +47,8 @@ type (
 		Page  int
 	}
 
-	MsgResponse struct {
-		ID  string `json:"id"`
-		Msg string `json:"msg"`
+	DeleteRequest struct {
+		ID string `json:"id"`
 	}
 
 	Response struct {
@@ -73,7 +72,7 @@ func MakeEndpoints(s Service, c Config) Endpoints {
 		Create: makeCreateEndpoint(s),
 		Get:    makeGetEndpoint(s),
 		Update: makeUpdateEndpoint(s),
-		/*Delete: makeDeleteEndpoint(s),*/
+		Delete: makeDeleteEndpoint(s),
 		GetAll: makeGetAllEndpoint(s, c),
 	}
 }
@@ -195,27 +194,24 @@ func makeGetAllEndpoint(s Service, c Config) Controller {
 	}
 }
 
-/*
 // Este devolver un Controller, retora una función de tipo Controller (que definimos arriba) con esta caractesitica
 // Es privado porque se llamar solo de este dominio
 func makeDeleteEndpoint(s Service) Controller {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		fmt.Println("delete course")
-		w.Header().Add("Content-Type", "application/json; charset=utf-8") //Linea miea para que se determine que respondera un json
 
-		variablesPath := mux.Vars(r)
-		id := variablesPath["id"]
-		fmt.Println("id a eliminar es:", id)
-		err := s.Delete(id)
+		delReq := request.(DeleteRequest)
+
+		err := s.Delete(ctx, delReq.ID)
 		if err != nil {
-			w.WriteHeader(404)
-			json.NewEncoder(w).Encode(&Response{Status: 404, Err: err.Error()}) //Aqui devolvemo el posible erro
-			return
+			if errors.As(err, &ErrCourseNotFound{}) {
+				return nil, response.NotFound(err.Error())
+			} else {
+				return nil, response.InternalServerError(err.Error())
+
+			}
 		}
 
-		//Aqui le pasamos Response como struct para ahorrar memoria
-		//Con puntero (&Response): Encode accede al struct original a través de la dirección de memoria. Esto evita copiar los datos.
-		//Sin puntero (Response): Encode recibe una copia del struct completo, lo que puede ocupar más memoria si el struct es muy grande.
-		json.NewEncoder(w).Encode(&Response{Status: 200, Data: map[string]string{"id": id, "msg": "success"}})
+		return response.OK("success", delReq, nil), nil
 	}
-} */
+}

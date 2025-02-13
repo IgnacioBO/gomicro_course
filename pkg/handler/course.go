@@ -46,14 +46,14 @@ func NewUserHTTPServer(ctx context.Context, endpoints course.Endpoints) http.Han
 		encodeResponse,
 		opciones...,
 	)).Methods("GET")
-	/*
-		router.Handle("/users/{id}", httptransport.NewServer(
-			endpoint.Endpoint(endpoints.Delete),
-			decodeDeleteUser,
-			encodeResponse,
-			opciones...,
-		)).Methods("DELETE")
-	*/
+
+	router.Handle("/courses/{id}", httptransport.NewServer(
+		endpoint.Endpoint(endpoints.Delete),
+		decodeDeleteCourse,
+		encodeResponse,
+		opciones...,
+	)).Methods("DELETE")
+
 	router.Handle("/courses/{id}", httptransport.NewServer(
 		endpoint.Endpoint(endpoints.Update),
 		decodeUpdateCourse,
@@ -128,18 +128,17 @@ func decodeGetAllCourse(_ context.Context, r *http.Request) (interface{}, error)
 	return getReqAll, nil
 }
 
-/*
 // *** MIDDLEWARE REQUEST Delete ***
-func decodeDeleteUser(_ context.Context, r *http.Request) (interface{}, error) {
+func decodeDeleteCourse(_ context.Context, r *http.Request) (interface{}, error) {
 	variablesPath := mux.Vars(r)
 	id := variablesPath["id"]
 	fmt.Println("id a eliminar es:", id)
-	deleteReq := user.DeleteRequest{ID: id}
+	deleteReq := course.DeleteRequest{ID: id}
 
 	return deleteReq, nil
 
 }
-*/
+
 // *** MIDDLEWARE REQUEST Delete***
 func decodeUpdateCourse(_ context.Context, r *http.Request) (interface{}, error) {
 	var reqStruct course.UpdateRequest
