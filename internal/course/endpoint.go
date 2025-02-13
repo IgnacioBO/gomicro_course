@@ -14,7 +14,7 @@ type (
 	//Controller sera una funcion que reciba REspone y Request
 	Controller func(ctx context.Context, request interface{}) (interface{}, error)
 	Endpoints  struct {
-		Create        Controller //Esto es lo mismo que decir Create func(w http.ResponseWriter, r *http.Request), pero como TODOS SON tipo Controller (Definido arriba) nos ahorramos ahcerlo
+		Create        Controller
 		Get           Controller
 		GetAll        Controller
 		Update        Controller
@@ -49,13 +49,6 @@ type (
 
 	DeleteRequest struct {
 		ID string `json:"id"`
-	}
-
-	Response struct {
-		Status int         `json:"status"`
-		Data   interface{} `json:"data,omitempty"` //omitempty, asi cuando queremos enviamos la data cuando eta ok y cuando este eror se envie el campo error
-		Err    string      `json:"error,omitempty"`
-		Meta   *meta.Meta  `json:"meta,omitempty"`
 	}
 
 	//Struct para guardar la cant page por defecto y otras conf
@@ -184,6 +177,9 @@ func makeGetAllEndpoint(s Service, c Config) Controller {
 		}
 		//Luego crearemos un meta y le agregaremos la cantidad que consultamos, luego el meta lo ageregaremos a la respuesta
 		meta, err := meta.New(page, limit, cantidad, c.LimitPageDefault)
+		if err != nil {
+			return nil, response.InternalServerError(err.Error())
+		}
 
 		allCourses, err := s.GetAll(ctx, filtros, meta.Offset(), meta.Limit()) //GetAll recibe el offset (desde q resultado mostrar) y el limit (cuantos desde el offset)
 		if err != nil {
