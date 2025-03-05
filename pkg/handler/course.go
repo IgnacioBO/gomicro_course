@@ -5,8 +5,10 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/IgnacioBO/go_lib_response/response"
@@ -66,6 +68,12 @@ func NewUserHTTPServer(ctx context.Context, endpoints course.Endpoints) http.Han
 
 // *** MIDDLEWARE REQUEST ***
 func decodeCreateCourse(_ context.Context, r *http.Request) (interface{}, error) {
+	//Le pasamos un validador de ahtotization (que le pasamos del token del header)
+	//Si es invalida da error de autorizacion
+	if err := authorization(r.Header.Get("Authorization")); err != nil {
+		return nil, response.Forbidden(err.Error())
+	}
+
 	var reqStruct course.CreateRequest
 
 	//Ahora hacemos el decode del body del json al srtuct de REquest de course
@@ -99,6 +107,11 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 // *** MIDDLEWARE REQUEST GET ***
 func decodeGetCourse(_ context.Context, r *http.Request) (interface{}, error) {
+	//Le pasamos un validador de ahtotization (que le pasamos del token del header)
+	if err := authorization(r.Header.Get("Authorization")); err != nil {
+		return nil, response.Forbidden(err.Error())
+	}
+
 	var getReq course.GetRequest
 	variablesPath := mux.Vars(r)
 	getReq.ID = variablesPath["id"] //OBtenemos el id y lo guardamos en el cmapo ID de getReq
@@ -112,6 +125,11 @@ func decodeGetCourse(_ context.Context, r *http.Request) (interface{}, error) {
 // *** MIDDLEWARE REQUEST GET All ***
 // Funcion de decode, de GET
 func decodeGetAllCourse(_ context.Context, r *http.Request) (interface{}, error) {
+	//Le pasamos un validador de ahtotization (que le pasamos del token del header)
+	if err := authorization(r.Header.Get("Authorization")); err != nil {
+		return nil, response.Forbidden(err.Error())
+	}
+
 	//Query() devielve un objeto que permite acceder a los parametros d la url (...?campo=123&campo2=hola)
 	variablesURL := r.URL.Query()
 
@@ -130,6 +148,11 @@ func decodeGetAllCourse(_ context.Context, r *http.Request) (interface{}, error)
 
 // *** MIDDLEWARE REQUEST Delete ***
 func decodeDeleteCourse(_ context.Context, r *http.Request) (interface{}, error) {
+	//Le pasamos un validador de ahtotization (que le pasamos del token del header)
+	if err := authorization(r.Header.Get("Authorization")); err != nil {
+		return nil, response.Forbidden(err.Error())
+	}
+
 	variablesPath := mux.Vars(r)
 	id := variablesPath["id"]
 	fmt.Println("id a eliminar es:", id)
@@ -141,6 +164,11 @@ func decodeDeleteCourse(_ context.Context, r *http.Request) (interface{}, error)
 
 // *** MIDDLEWARE REQUEST Delete***
 func decodeUpdateCourse(_ context.Context, r *http.Request) (interface{}, error) {
+	//Le pasamos un validador de ahtotization (que le pasamos del token del header)
+	if err := authorization(r.Header.Get("Authorization")); err != nil {
+		return nil, response.Forbidden(err.Error())
+	}
+
 	var reqStruct course.UpdateRequest
 
 	err := json.NewDecoder(r.Body).Decode(&reqStruct)
@@ -153,4 +181,12 @@ func decodeUpdateCourse(_ context.Context, r *http.Request) (interface{}, error)
 
 	return reqStruct, nil
 
+}
+
+// Authoruzation con otken
+func authorization(token string) error {
+	if token != os.Getenv("TOKEN") {
+		return errors.New("invalid token")
+	}
+	return nil
 }
